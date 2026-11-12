@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reddit's Game of the Day Hackathon - BaseGameBot Demo</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #ff4500;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.2em;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #ff4500;
+    }
+    .game-title {
+      color: #ff4500;
+      font-size: 1.8em;
+      margin: 0;
+    }
+    .score-board {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .game-state {
+      background: #f8f8f8;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      font-size: 14px;
+      border: 1px solid #ddd;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #ff4500;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      background: #e03a00;
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .comment-area {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    .comment-input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .comment-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .comment-item {
+      margin-bottom: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .comment-author {
+      font-weight: bold;
+      color: #ff4500;
+    }
+    .comment-text {
+      margin-left: 10px;
+      color: #333;
+    }
+    .status {
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .timer {
+      text-align: center;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #ff4500;
+      margin-top: 20px;
+    }
+    .game-over {
+      text-align: center;
+      font-size: 1.8em;
+      color: #e74c3c;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .emoji {
+      font-size: 1.2em;
+      margin: 0 5px;
+    }
+    .progress-bar {
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+    .progress {
+      height: 100%;
+      background: #ff4500;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .demo-info {
+      margin-top: 30px;
+      padding: 20px;
+      background: #e6f7ff;
+      border-radius: 10px;
+      border-left: 5px solid #007acc;
+    }
+    .demo-info h3 {
+      color: #007acc;
+      margin-top: 0;
+    }
+    .demo-info ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .demo-info li {
+      margin-bottom: 5px;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+      .container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>BaseGameBot: Escape the Mine</h1>
+  
+  <div class="container">
+    <div class="game-container">
+      <div class="game-header">
+        <h2 class="game-title">🎮 Escape the Mine</h2>
+        <div class="timer">Time: <span id="timer">60</span> seconds</div>
+      </div>
+      
+      <div class="score-board">
+        <p>Score: <span id="score">0</span> | Moves: <span id="moves">0</span></p>
+      </div>
+      
+      <div class="progress-bar">
+        <div class="progress" id="progress"></div>
+      </div>
+      
+      <div class="game-state" id="gameState">
+        You're in a dark mine. You can hear the sound of dripping water and distant echoes.
+        What will you do?
+      </div>
+      
+      <div class="controls">
+        <button id="mineBtn">⛏️ Mine</button>
+        <button id="shieldBtn">🛡️ Shield</button>
+        <button id="raidBtn">⚔️ Raid</button>
+        <button id="runBtn">🏃 Run</button>
+        <button id="resetBtn">🔄 Reset Game</button>
+      </div>
+      
+      <div class="comment-area">
+        <h3>Reddit-style Comments</h3>
+        <input type="text" id="commentInput" class="comment-input" placeholder="Comment your move...">
+        <button id="submitComment">Submit</button>
+        <ul id="commentList" class="comment-list"></ul>
+      </div>
+      
+      <div id="status" class="status"></div>
+      
+      <div id="gameOver" class="game-over" style="display: none;">Game Over! You escaped the mine!</div>
+    </div>
+  </div>
+  
+  <div class="demo-info">
+    <h3>How This Works</h3>
+    <p>This demo simulates a blockchain game on Reddit using Base and Cloudflare Workers.</p>
+    <ul>
+      <li>Play a text-based adventure game directly in your browser</li>
+      <li>Each action updates your game state (simulated)</li>
+      <li>Comments represent player interactions</li>
+      <li>Game state is tracked and updated in real-time</li>
+    </ul>
+  </div>
+
+  <script>
+    // Game state
+    let gameState = {
+      round: 1,
+      score: 0,
+      moves: 0,
+      timeLeft: 60,
+      gameOver: false,
+      playerActions: {},
+      currentLocation: "mine",
+      player: "Player1"
+    };
+
+    // DOM elements
+    const gameStateEl = document.getElementById('gameState');
+    const scoreEl = document.getElementById('score');
+    const movesEl = document.getElementById('moves');
+    const timerEl = document.getElementById('timer');
+    const progressBar = document.getElementById('progress');
+    const statusEl = document.getElementById('status');
+    const gameOverEl = document.getElementById('gameOver');
+    const commentInput = document.getElementById('commentInput');
+    const submitCommentBtn = document.getElementById('submitComment');
+    const commentList = document.getElementById('commentList');
+    const mineBtn = document.getElementById('mineBtn');
+    const shieldBtn = document.getElementById('shieldBtn');
+    const raidBtn = document.getElementById('raidBtn');
+    const runBtn = document.getElementById('runBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Game messages
+    const gameMessages = {
+      mine: [
+        "You strike the rock with your pickaxe. A vein of precious minerals glimmers!",
+        "You find a hidden stash of gold! Your score increases.",
+        "The rock crumbles under your pickaxe, revealing a secret passage."
+      ],
+      shield: [
+        "You raise your shield just in time! A boulder rolls past you.",
+        "The shield absorbs the impact of falling rocks. You're safe for now.",
+        "You protect yourself from a cave-in with your sturdy shield."
+      ],
+      raid: [
+        "You attack a mine guardian! It retreats, dropping valuable loot.",
+        "You steal some gems from a sleeping creature. Your score increases.",
+        "You raid a hidden chamber and find a treasure chest."
+      ],
+      run: [
+        "You sprint through the tunnels, escaping a collapsing section.",
+        "You make a daring escape from a dangerous area.",
+        "You find a hidden exit and escape the mine!"
+      ],
+      default: [
+        "You explore the mine, searching for valuable resources.",
+        "You hear strange noises echoing through the tunnels.",
+        "You carefully navigate through the dark passages."
+      ]
+    };
+
+    // Update game state display
+    function updateDisplay() {
+      scoreEl.textContent = gameState.score;
+      movesEl.textContent = gameState.moves;
+      timerEl.textContent = gameState.timeLeft;
+      
+      // Update progress bar
+      const progress = ((60 - gameState.timeLeft) / 60) * 100;
+      progressBar.style.width = `${progress}%`;
+      
+      // Update game state text
+      let stateText = "";
+      if (gameState.currentLocation === "mine") {
+        stateText = `You're in a dark mine. You can hear the sound of dripping water and distant echoes.\n\n`;
+      } else if (gameState.currentLocation === "exit") {
+        stateText = `You've found the exit! You're almost free!\n\n`;
+      } else {
+        stateText = `You're exploring a mysterious tunnel. The air is damp and cold.\n\n`;
+      }
+      
+      // Add player actions
+      if (Object.keys(gameState.playerActions).length > 0) {
+        stateText += "\nRecent actions:\n";
+        Object.entries(gameState.playerActions).forEach(([player, action]) => {
+          stateText += `• ${player} ${action}\n`;
+        });
+      }
+      
+      gameStateEl.textContent = stateText;
+      
+      // Check if game is over
+      if (gameState.gameOver) {
+        gameOverEl.style.display = "block";
+        resetBtn.disabled = false;
+        mineBtn.disabled = true;
+        shieldBtn.disabled = true;
+        raidBtn.disabled = true;
+        runBtn.disabled = true;
+      }
+    }
+
+    // Simulate action
+    function simulateAction(action) {
+      if (gameState.gameOver) return;
+      
+      // Add action to player actions
+      gameState.playerActions[gameState.player] = action;
+      
+      // Randomly generate a response based on action
+      const messages = gameMessages[action] || gameMessages.default;
+      const message = messages[Math.floor(Math.random() * messages.length)];
+      
+      // Update game state
+      gameState.moves++;
+      gameState.score += Math.floor(Math.random() * 3) + 1;
+      
+      // Check if game should end
+      if (gameState.moves >= 10) {
+        gameState.gameOver = true;
+      }
+      
+      // Update display
+      updateDisplay();
+      
+      // Add comment
+      addComment(gameState.player, `${action} - ${message}`);
+    }
+
+    // Add comment to the list
+    function addComment(player, text) {
+      const li = document.createElement('li');
+      li.className = 'comment-item';
+      li.innerHTML = `
+        <span class="comment-author">@${player}</span>
+        <span class="comment-text">${text}</span>
+      `;
+      commentList.prepend(li);
+      
+      // Limit comments to 10
+      if (commentList.children.length > 10) {
+        commentList.removeChild(commentList.lastChild);
+      }
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+      statusEl.style.display = "block";
+      
+      setTimeout(() => {
+        statusEl.style.display = "none";
+      }, 3000);
+    }
+
+    // Timer
+    let timerInterval;
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (gameState.timeLeft > 0 && !gameState.gameOver) {
+          gameState.timeLeft--;
+          updateDisplay();
+        } else {
+          clearInterval(timerInterval);
+          gameState.gameOver = true;
+          updateDisplay();
+          showStatus("Time's up! Game over!", "success");
+        }
+      }, 1000);
+    }
+
+    // Reset game
+    function resetGame() {
+      gameState = {
+        round: 1,
+        score: 0,
+        moves: 0,
+        timeLeft: 60,
+        gameOver: false,
+        playerActions: {},
+        currentLocation: "mine",
+        player: "Player1"
+      };
+      
+      // Clear comments
+      commentList.innerHTML = "";
+      
+      // Reset UI
+      updateDisplay();
+      gameOverEl.style.display = "none";
+      resetBtn.disabled = true;
+      mineBtn.disabled = false;
+      shieldBtn.disabled = false;
+      raidBtn.disabled = false;
+      runBtn.disabled = false;
+      
+      // Start timer
+      startTimer();
+    }
+
+    // Event listeners
+    mineBtn.addEventListener('click', () => simulateAction("mine"));
+    shieldBtn.addEventListener('click', () => simulateAction("shield"));
+    raidBtn.addEventListener('click', () => simulateAction("raid"));
+    runBtn.addEventListener('click', () => simulateAction("run"));
+    
+    resetBtn.addEventListener('click', resetGame);
+    
+    submitCommentBtn.addEventListener('click', () => {
+      const comment = commentInput.value.trim();
+      if (comment) {
+        addComment(gameState.player, comment);
+        commentInput.value = '';
+      }
+    });
+    
+    commentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitCommentBtn.click();
+      }
+    });
+
+    // Initialize game
+    resetGame();
+  </script>
+</body>
+</html>
